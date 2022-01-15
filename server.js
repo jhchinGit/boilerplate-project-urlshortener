@@ -19,6 +19,7 @@ mongoose.connect(process.env.MONGO_URI, {
 });
 
 const urlSchema = new Schema({
+  shortId: Number,
   url: String,
 });
 
@@ -39,6 +40,15 @@ const options = {
   hints: dns.ADDRCONFIG | dns.V4MAPPED,
 };
 
+const getShortId = (done) => {
+  ShortUrl.find({}, (err, data) => {
+    if (err) {
+      return done(err);
+    }
+    return done(null, !data ? 1 : data.length + 1);
+  });
+};
+
 const findUrlByUrlName = (urlName, done) => {
   ShortUrl.findOne({ url: urlName }, (err, data) => {
     if (err) {
@@ -49,7 +59,7 @@ const findUrlByUrlName = (urlName, done) => {
 };
 
 const findUrlByShortUrlId = (shortUrlId, done) => {
-  ShortUrl.findOne({ _id: shortUrlId }, (err, data) => {
+  ShortUrl.findOne({ shortId: shortUrlId }, (err, data) => {
     if (err) {
       return done(err);
     }
@@ -72,18 +82,27 @@ app.post("/api/shorturl", function (req, res) {
     } else {
       findUrlByUrlName(receiveUrl.origin.toLowerCase(), function (err, data) {
         if (data) {
-          res.json({ original_url: data.url, short_url: data._id });
+          res.json({ original_url: data.url, short_url: data.shortId });
         } else {
-          var newUrl = new ShortUrl({
-            url: receiveUrl.origin.toLowerCase(),
-          });
-          newUrl.save((err, theData) => {
+          getShortId(function (err, newShortId) {
             if (err) {
               res.json({ error: "invalid url" });
-              return null;
-            } else {
-              res.json({ original_url: theData.url, short_url: theData._id });
             }
+            var newUrl = new ShortUrl({
+              url: receiveUrl.origin.toLowerCase(),
+              shortId: newShortId,
+            });
+            newUrl.save((err, theData) => {
+              if (err) {
+                res.json({ error: "invalid url" });
+                return null;
+              } else {
+                res.json({
+                  original_url: theData.url,
+                  short_url: theData.shortId,
+                });
+              }
+            });
           });
         }
       });
