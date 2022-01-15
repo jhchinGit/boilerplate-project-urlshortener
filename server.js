@@ -22,7 +22,7 @@ const urlSchema = new Schema({
   url: String,
 });
 
-const Url = mongoose.model("Url", urlSchema);
+const ShortUrl = mongoose.model("ShortUrl", urlSchema);
 
 app.get("/", function (req, res) {
   res.sendFile(process.cwd() + "/views/index.html");
@@ -40,7 +40,7 @@ const options = {
 };
 
 const findUrlByUrlName = (urlName, done) => {
-  Url.find({ url: urlName }, (err, data) => {
+  ShortUrl.findOne({ url: urlName }, (err, data) => {
     if (err) {
       return done(err);
     }
@@ -49,7 +49,7 @@ const findUrlByUrlName = (urlName, done) => {
 };
 
 const findUrlByShortUrlId = (shortUrlId, done) => {
-  Url.find({ _id: shortUrlId }, (err, data) => {
+  ShortUrl.findOne({ _id: shortUrlId }, (err, data) => {
     if (err) {
       return done(err);
     }
@@ -58,18 +58,25 @@ const findUrlByShortUrlId = (shortUrlId, done) => {
 };
 
 app.post("/api/shorturl", function (req, res) {
-  dns.lookup(req.body.url, options, (err, address, family) => {
+  let receiveUrl = "";
+  try {
+    receiveUrl = new URL(req.body.url);
+  } catch (_) {
+    res.json({ error: "invalid url" });
+    return;
+  }
+
+  dns.lookup(receiveUrl.hostname, options, (err, address, family) => {
     if (err) {
       res.json({ error: "invalid url" });
     } else {
-      findUrlByUrlName(req.body.url.toLowerCase(), function (err, data) {
-        if (data && data.length > 0) {
-          res.json({ original_url: data[0].url, short_url: data[0]._id });
+      findUrlByUrlName(receiveUrl.origin.toLowerCase(), function (err, data) {
+        if (data) {
+          res.json({ original_url: data.url, short_url: data._id });
         } else {
-          var newUrl = new Url({
-            url: req.body.url.toLowerCase(),
+          var newUrl = new ShortUrl({
+            url: receiveUrl.origin.toLowerCase(),
           });
-
           newUrl.save((err, theData) => {
             if (err) {
               res.json({ error: "invalid url" });
@@ -92,11 +99,7 @@ app.get("/api/shorturl/:shortUrlId", function (req, res) {
       if (err) {
         res.json({ error: "invalid url" });
       } else {
-        res
-          .writeHead(301, {
-            Location: data.url,
-          })
-          .end();
+        res.redirect(data.url);
       }
     });
   }
