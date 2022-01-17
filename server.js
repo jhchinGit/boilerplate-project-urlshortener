@@ -76,11 +76,16 @@ app.post("/api/shorturl", function (req, res) {
     return;
   }
 
+  if (!receiveUrl.protocol.toLowerCase().includes("http")) {
+    res.json({ error: "invalid url" });
+    return;
+  }
+
   dns.lookup(receiveUrl.hostname, options, (err, address, family) => {
     if (err) {
       res.json({ error: "invalid url" });
     } else {
-      findUrlByUrlName(receiveUrl.origin.toLowerCase(), function (err, data) {
+      findUrlByUrlName(receiveUrl.href.toLowerCase(), function (err, data) {
         if (data) {
           res.json({ original_url: data.url, short_url: data.shortId });
         } else {
@@ -89,7 +94,7 @@ app.post("/api/shorturl", function (req, res) {
               res.json({ error: "invalid url" });
             }
             var newUrl = new ShortUrl({
-              url: receiveUrl.origin.toLowerCase(),
+              url: receiveUrl.href.toLowerCase(),
               shortId: newShortId,
             });
             newUrl.save((err, theData) => {
@@ -123,6 +128,17 @@ app.get("/api/shorturl/:shortUrlId", async function (req, res) {
   } catch (err) {
     // res.status(500).json("Server error..");
   }
+});
+
+app.use(function (req, res, next) {
+  res.status(404);
+  res.render("404");
+});
+
+// custom 500 page
+app.use(function (err, req, res, next) {
+  res.status(500);
+  res.render("500");
 });
 
 app.listen(port, function () {
