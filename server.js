@@ -4,7 +4,7 @@ require("dotenv").config();
 const express = require("express");
 var bodyParser = require("body-parser");
 const cors = require("cors");
-// const dns = require("dns");
+const dns = require("dns");
 const app = express();
 // Basic Configuration
 const port = process.env.PORT || 3000;
@@ -34,11 +34,11 @@ app.get("/api/hello", function (req, res) {
   res.json({ greeting: "hello API" });
 });
 
-// const options = {
-//   // Setting family as 6 i.e. IPv6
-//   family: 6,
-//   hints: dns.ADDRCONFIG | dns.V4MAPPED,
-// };
+const options = {
+  // Setting family as 6 i.e. IPv6
+  family: 6,
+  hints: dns.ADDRCONFIG | dns.V4MAPPED,
+};
 
 const getShortId = (done) => {
   ShortUrl.find({}, (err, data) => {
@@ -76,37 +76,35 @@ app.post("/api/shorturl", function (req, res) {
     return;
   }
 
-  // dns.lookup(receiveUrl.hostname, options, (err, address, family) => {
-  //   if (err) {
-  //     res.json({ error: "invalid url" });
-  //   } else {
-
-  //   }
-  // });
-
-  findUrlByUrlName(receiveUrl.origin.toLowerCase(), function (err, data) {
-    if (data) {
-      res.json({ original_url: data.url, short_url: data.shortId });
+  dns.lookup(receiveUrl.hostname, options, (err, address, family) => {
+    if (err) {
+      res.json({ error: "invalid url" });
     } else {
-      getShortId(function (err, newShortId) {
-        if (err) {
-          res.json({ error: "invalid url" });
-        }
-        var newUrl = new ShortUrl({
-          url: receiveUrl.origin.toLowerCase(),
-          shortId: newShortId,
-        });
-        newUrl.save((err, theData) => {
-          if (err) {
-            res.json({ error: "invalid url" });
-            return null;
-          } else {
-            res.json({
-              original_url: theData.url,
-              short_url: theData.shortId,
+      findUrlByUrlName(receiveUrl.origin.toLowerCase(), function (err, data) {
+        if (data) {
+          res.json({ original_url: data.url, short_url: data.shortId });
+        } else {
+          getShortId(function (err, newShortId) {
+            if (err) {
+              res.json({ error: "invalid url" });
+            }
+            var newUrl = new ShortUrl({
+              url: receiveUrl.origin.toLowerCase(),
+              shortId: newShortId,
             });
-          }
-        });
+            newUrl.save((err, theData) => {
+              if (err) {
+                res.json({ error: "invalid url" });
+                return null;
+              } else {
+                res.json({
+                  original_url: theData.url,
+                  short_url: theData.shortId,
+                });
+              }
+            });
+          });
+        }
       });
     }
   });
