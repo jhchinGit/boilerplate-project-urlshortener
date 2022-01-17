@@ -121,7 +121,7 @@ app.get("/api/shorturl/:shortUrlId", async function (req, res) {
     });
     res.status(404).json("No URL found");
   } catch (err) {
-    res.status(500).json("Server error..");
+    // res.status(500).json("Server error..");
   }
 });
 
