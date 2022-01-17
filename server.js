@@ -60,7 +60,6 @@ const findUrlByUrlName = (urlName, done) => {
 
 const findUrlByShortUrlId = async (shortUrlId, done) => {
   await ShortUrl.findOne({ shortId: shortUrlId }, (err, data) => {
-    console.log("err data", err, data);
     if (err) {
       return done(err);
     }
@@ -116,26 +115,14 @@ app.get("/api/shorturl/:shortUrlId", async function (req, res) {
     await findUrlByShortUrlId(req.params.shortUrlId, function (err, data) {
       if (err) {
         res.json({ error: "invalid url" });
-      } else {
+      } else if (data) {
         res.redirect(data.url);
       }
     });
     res.status(404).json("No URL found");
   } catch (err) {
-    console.log(err);
     res.status(500).json("Server error..");
   }
-  // if (!req.params.shortUrlId && req.params.shortUrlId !== 0) {
-  //   res.status(404).json("No URL found");
-  // } else {
-  //   await findUrlByShortUrlId(req.params.shortUrlId, function (err, data) {
-  //     if (err) {
-  //       res.json({ error: "invalid url" });
-  //     } else {
-  //       res.redirect(data.url);
-  //     }
-  //   });
-  // }
 });
 
 app.listen(port, function () {
