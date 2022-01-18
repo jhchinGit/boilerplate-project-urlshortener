@@ -29,11 +29,6 @@ app.get("/", function (req, res) {
   res.sendFile(process.cwd() + "/views/index.html");
 });
 
-// Your first API endpoint
-app.get("/api/hello", function (req, res) {
-  res.json({ greeting: "hello API" });
-});
-
 const options = {
   // Setting family as 6 i.e. IPv6
   family: 6,
@@ -49,7 +44,7 @@ const getShortId = (done) => {
   });
 };
 
-const findUrlByUrlName = (urlName, done) => {
+const findUrlByUrlName = async (urlName, done) => {
   ShortUrl.findOne({ url: urlName }, (err, data) => {
     if (err) {
       return done(err);
@@ -67,40 +62,48 @@ const findUrlByShortUrlId = async (shortUrlId, done) => {
   });
 };
 
-app.post("/api/shorturl", function (req, res) {
-  let receiveUrl = "";
+app.post("/api/shorturl", async function (req, res) {
+  let urlOject = null;
   try {
-    receiveUrl = new URL(req.body.url);
+    urlOject = new URL(req.body.url);
   } catch (_) {
     res.json({ error: "invalid url" });
     return;
   }
 
-  if (!receiveUrl.protocol.toLowerCase().includes("http")) {
-    res.json({ error: "invalid url" });
-    return;
+  const s = req.body.url;
+  if (s.substring(0, 7) !== "http://" && s.substring(0, 8) !== "https://") {
+    console.log("here4");
+    return res.json({ error: "invalid url" });
   }
 
-  dns.lookup(receiveUrl.hostname, options, (err, address, family) => {
-    if (err) {
+  dns.lookup(urlOject.hostname, options, async (err, address, family) => {
+    if (
+      err &&
+      urlOject.hostname !==
+        "boilerplate-project-urlshortener.jinhoong1995.repl.co"
+    ) {
+      console.log("here1 err", err);
+      console.log("here1 urlOject.hostname", urlOject.hostname);
       res.json({ error: "invalid url" });
     } else {
-      findUrlByUrlName(receiveUrl.href.toLowerCase(), function (err, data) {
+      await findUrlByUrlName(req.body.url.toLowerCase(), function (err, data) {
         if (data) {
           res.json({ original_url: data.url, short_url: data.shortId });
         } else {
           getShortId(function (err, newShortId) {
             if (err) {
+              console.log("here2");
               res.json({ error: "invalid url" });
             }
             var newUrl = new ShortUrl({
-              url: receiveUrl.href.toLowerCase(),
+              url: req.body.url.toLowerCase(),
               shortId: newShortId,
             });
             newUrl.save((err, theData) => {
               if (err) {
+                console.log("here3");
                 res.json({ error: "invalid url" });
-                return null;
               } else {
                 res.json({
                   original_url: theData.url,
@@ -124,21 +127,10 @@ app.get("/api/shorturl/:shortUrlId", async function (req, res) {
         res.redirect(data.url);
       }
     });
-    res.status(404).json("No URL found");
+    // res.status(404).json("No URL found");
   } catch (err) {
     // res.status(500).json("Server error..");
   }
-});
-
-app.use(function (req, res, next) {
-  res.status(404);
-  res.render("404");
-});
-
-// custom 500 page
-app.use(function (err, req, res, next) {
-  res.status(500);
-  res.render("500");
 });
 
 app.listen(port, function () {
