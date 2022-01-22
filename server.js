@@ -73,7 +73,6 @@ app.post("/api/shorturl", async function (req, res) {
 
   const s = req.body.url;
   if (s.substring(0, 7) !== "http://" && s.substring(0, 8) !== "https://") {
-    console.log("here4");
     return res.json({ error: "invalid url" });
   }
 
@@ -83,8 +82,6 @@ app.post("/api/shorturl", async function (req, res) {
       urlOject.hostname !==
         "boilerplate-project-urlshortener.jinhoong1995.repl.co"
     ) {
-      console.log("here1 err", err);
-      console.log("here1 urlOject.hostname", urlOject.hostname);
       res.json({ error: "invalid url" });
     } else {
       await findUrlByUrlName(req.body.url.toLowerCase(), function (err, data) {
@@ -93,7 +90,6 @@ app.post("/api/shorturl", async function (req, res) {
         } else {
           getShortId(function (err, newShortId) {
             if (err) {
-              console.log("here2");
               res.json({ error: "invalid url" });
             }
             var newUrl = new ShortUrl({
@@ -102,7 +98,6 @@ app.post("/api/shorturl", async function (req, res) {
             });
             newUrl.save((err, theData) => {
               if (err) {
-                console.log("here3");
                 res.json({ error: "invalid url" });
               } else {
                 res.json({
@@ -119,18 +114,13 @@ app.post("/api/shorturl", async function (req, res) {
 });
 
 app.get("/api/shorturl/:shortUrlId", async function (req, res) {
-  try {
-    await findUrlByShortUrlId(req.params.shortUrlId, function (err, data) {
-      if (err) {
-        res.json({ error: "invalid url" });
-      } else if (data) {
-        res.redirect(data.url);
-      }
-    });
-    // res.status(404).json("No URL found");
-  } catch (err) {
-    // res.status(500).json("Server error..");
-  }
+  await findUrlByShortUrlId(req.params.shortUrlId, function (err, data) {
+    if (err) {
+      res.json({ error: "invalid url" });
+    } else if (data) {
+      res.redirect(data.url);
+    }
+  });
 });
 
 app.listen(port, function () {
